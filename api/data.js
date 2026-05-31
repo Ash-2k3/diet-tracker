@@ -1,4 +1,9 @@
-const { kv } = require('@vercel/kv');
+const { Redis } = require('@upstash/redis');
+
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN,
+});
 
 const KEY = 'ashwath_diet_tracker';
 
@@ -7,13 +12,11 @@ module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
+  if (req.method === 'OPTIONS') return res.status(200).end();
 
   if (req.method === 'GET') {
     try {
-      const data = await kv.get(KEY);
+      const data = await redis.get(KEY);
       return res.status(200).json(data || null);
     } catch (err) {
       console.error('GET error:', err);
@@ -28,7 +31,7 @@ module.exports = async function handler(req, res) {
         return res.status(400).json({ error: 'Invalid body' });
       }
       body.updatedAt = new Date().toISOString();
-      await kv.set(KEY, body);
+      await redis.set(KEY, body);
       return res.status(200).json({ success: true, updatedAt: body.updatedAt });
     } catch (err) {
       console.error('POST error:', err);
