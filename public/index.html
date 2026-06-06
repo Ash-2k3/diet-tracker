@@ -235,7 +235,7 @@ var MEALS = [
     items:[
       { label:'250g grilled chicken breast', kcal:290, p:55, c:0,  f:7  },
       { label:'3/4 cup cooked rice',         kcal:170, p:4,  c:41, f:0  },
-      { label:'1 cup stir-fried veggies',    kcal:100, p:3,  c:12, f:5  }
+      { label:'Greek salad (tomato, cucumber, 30g feta, 1 tsp olive oil)', kcal:160, p:5, c:9, f:11 }
     ]
   }
 ];
@@ -272,8 +272,10 @@ function makeWeek(id, label, startDate, endDate) {
 }
 
 function defaultAppData() {
-  var w = makeWeek('week-1','Week 1','2026-06-02','2026-06-08');
-  return { currentWeekId:'week-1', weeks:{ 'week-1': w } };
+  var w1 = makeWeek('week-1','Week 1','2026-06-02','2026-06-08');
+  w1.archived = true;
+  var w2 = makeWeek('week-2','Week 2','2026-06-09','2026-06-15');
+  return { currentWeekId:'week-2', weeks:{ 'week-1': w1, 'week-2': w2 } };
 }
 
 function getCurrentWeek() {
@@ -319,12 +321,17 @@ async function loadData() {
     if (!res.ok) throw new Error('API '+res.status);
     var data = await res.json();
     appData = data || defaultAppData();
-    // ensure structure integrity
     if (!appData.weeks) appData.weeks = {};
+    // migrate: if Week 1 is still current but Week 2 doesn't exist yet, create it
+    if (appData.currentWeekId === 'week-1' && !appData.weeks['week-2']) {
+      if (appData.weeks['week-1']) appData.weeks['week-1'].archived = true;
+      appData.weeks['week-2'] = makeWeek('week-2','Week 2','2026-06-09','2026-06-15');
+      appData.currentWeekId = 'week-2';
+    }
     if (!appData.currentWeekId || !appData.weeks[appData.currentWeekId]) {
-      var w = makeWeek('week-1','Week 1','2026-06-02','2026-06-08');
-      appData.weeks['week-1'] = w;
-      appData.currentWeekId = 'week-1';
+      var w2 = makeWeek('week-2','Week 2','2026-06-09','2026-06-15');
+      appData.weeks['week-2'] = w2;
+      appData.currentWeekId = 'week-2';
     }
     localStorage.setItem('diet_cache', JSON.stringify(appData));
     setSaveStatus('saved','Synced');
